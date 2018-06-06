@@ -123,3 +123,15 @@ class PostTestCase(TestCase):
             dt.now = mock.Mock()
             dt.now.return_value = creation + timedelta(seconds=59, milliseconds=999)
             self.assertEqual(post.how_long_ago(), '59 seconds ago')
+
+    def test_domain_name(self):
+        post = Post(url='https://techcrunch.com/2018/06/05/washington-sues-facebook-and-google-over-failure-to-disclose-political-ad-spending/')
+        self.assertEqual(post.get_domain_name(), 'techcrunch.com')
+
+    def test_domain_name_with_subdomain(self):
+        post = Post(url='https://blog.mozilla.org/nnethercote/2018/06/05/how-to-speed-up-the-rust-compiler-some-more-in-2018/')
+        self.assertEqual(post.get_domain_name(), 'blog.mozilla.org')
+
+    def test_domain_name_with_www(self):
+        post = Post(url='https://www.livescience.com/61627-ancient-virus-brain.html')
+        self.assertEqual(post.get_domain_name(), 'livescience.com')

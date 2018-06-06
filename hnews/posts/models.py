@@ -1,4 +1,5 @@
 from datetime import timedelta
+from urllib.parse import urlparse
 
 from django.db import models
 from django.contrib.auth.models import User
@@ -31,6 +32,13 @@ class Post(models.Model):
             return f'{hours} hour{pluralize(hours)} ago'
         else:
             return f'{how_long.days} day{pluralize(how_long.days)} ago'
+
+    def get_domain_name(self):
+        name = urlparse(self.url).hostname
+        if name.startswith('www.'):
+            return name[len('www.'):]
+        else:
+            return name
 
 
 class PostUpvote(models.Model):
