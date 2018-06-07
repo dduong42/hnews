@@ -12,3 +12,5 @@ django = "*"
 
 [dev-packages]
 
+django-extensions = "*"
+ipython = "*"

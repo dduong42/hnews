@@ -40,10 +40,16 @@ class Post(models.Model):
         else:
             return name
 
+    def upvote(self, user):
+        PostUpvote.objects.create(post=self, user=user)
+
 
 class PostUpvote(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
     user = models.ForeignKey(User, related_name='post_upvotes', on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('post', 'user')
 
 
 class Comment(models.Model):
@@ -59,7 +65,13 @@ class Comment(models.Model):
     content = models.TextField(null=True)
     upvotes = models.ManyToManyField(User, through='CommentUpvote')
 
+    def upvote(self, user):
+        CommentUpvote.objects.create(post=self, user=user)
+
 
 class CommentUpvote(models.Model):
     comment = models.ForeignKey(Comment, on_delete=models.CASCADE)
     user = models.ForeignKey(User, related_name='comment_upvotes', on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('comment', 'user')
