@@ -40,8 +40,11 @@ class Post(models.Model):
         else:
             return name
 
-    def upvote(self, user):
-        PostUpvote.objects.create(post=self, user=user)
+    def set_upvoted(self, user, *, upvoted):
+        if upvoted:
+            PostUpvote.objects.get_or_create(post=self, user=user)
+        else:
+            self.upvotes.filter(id=user.id).delete()
 
 
 class PostUpvote(models.Model):
@@ -65,8 +68,11 @@ class Comment(models.Model):
     content = models.TextField(null=True)
     upvotes = models.ManyToManyField(User, through='CommentUpvote')
 
-    def upvote(self, user):
-        CommentUpvote.objects.create(post=self, user=user)
+    def set_upvoted(self, user, *, upvoted):
+        if upvoted:
+            CommentUpvote.objects.get_or_create(comment=self, user=user)
+        else:
+            self.upvotes.filter(id=user.id).delete()
 
 
 class CommentUpvote(models.Model):

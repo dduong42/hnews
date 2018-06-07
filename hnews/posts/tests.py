@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
+from django.contrib.auth.models import User
 from django.test import TestCase
 
-from .models import Post
+from .models import Post, Comment
 
 
 class PostTestCase(TestCase):
@@ -135,3 +136,33 @@ class PostTestCase(TestCase):
     def test_domain_name_with_www(self):
         post = Post(url='https://www.livescience.com/61627-ancient-virus-brain.html')
         self.assertEqual(post.get_domain_name(), 'livescience.com')
+
+    def test_set_upvoted_true(self):
+        user = User.objects.create_user(username='jean', email='jean@example.com', password='hey')
+        post = Post.objects.create(url='https://google.com', title='Google', creator=user)
+        post.set_upvoted(user, upvoted=True)
+        self.assertEqual(1, post.upvotes.filter(id=user.id).count())
+
+    def test_set_upvoted_false(self):
+        user = User.objects.create_user(username='jean', email='jean@example.com', password='hey')
+        post = Post.objects.create(url='https://google.com', title='Google', creator=user)
+        post.set_upvoted(user, upvoted=True)
+        post.set_upvoted(user, upvoted=False)
+        self.assertEqual(0, post.upvotes.filter(id=user.id).count())
+
+
+class CommentTestCase(TestCase):
+    def test_set_upvoted_true(self):
+        user = User.objects.create_user(username='jean', email='jean@example.com', password='hey')
+        post = Post.objects.create(url='https://google.com', title='Google', creator=user)
+        comment = Comment.objects.create(creator=user, content='Cool', post=post)
+        comment.set_upvoted(user, upvoted=True)
+        self.assertEqual(1, comment.upvotes.filter(id=user.id).count())
+
+    def test_set_upvoted_false(self):
+        user = User.objects.create_user(username='jean', email='jean@example.com', password='hey')
+        post = Post.objects.create(url='https://google.com', title='Google', creator=user)
+        comment = Comment.objects.create(creator=user, content='Cool', post=post)
+        comment.set_upvoted(user, upvoted=True)
+        comment.set_upvoted(user, upvoted=False)
+        self.assertEqual(0, comment.upvotes.filter(id=user.id).count())
