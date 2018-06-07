@@ -1,8 +1,8 @@
 from datetime import timedelta
 from urllib.parse import urlparse
 
-from django.db import models
 from django.contrib.auth.models import User
+from django.db import models
 from django.template.defaultfilters import pluralize
 from django.utils import timezone
 

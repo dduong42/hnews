@@ -1,10 +1,12 @@
+import json
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.shortcuts import reverse
+from django.test import Client, TestCase
 
-from .models import Post, Comment
+from .models import Comment, Post
 
 
 class PostTestCase(TestCase):
@@ -166,3 +168,57 @@ class CommentTestCase(TestCase):
         comment.set_upvoted(user, upvoted=True)
         comment.set_upvoted(user, upvoted=False)
         self.assertEqual(0, comment.upvotes.filter(id=user.id).count())
+
+
+class SetUpvotedTestCase(TestCase):
+    def test_set_upvoted_true_creates_post_upvote(self):
+        user = User.objects.create_user(username='jean', email='jean@example.com', password='hey')
+        post = Post.objects.create(url='https://google.com', title='Google', creator=user)
+        client = Client()
+
+        client.login(username='jean', password='hey')
+        uri = reverse('posts:set_upvoted_post', kwargs={'post_id': post.id})
+        client.post(uri, json.dumps({'upvoted': True}), content_type='application/json')
+        self.assertEqual(1, post.upvotes.filter(id=user.id).count())
+
+    def test_set_upvoted_true_returns_204(self):
+        user = User.objects.create_user(username='jean', email='jean@example.com', password='hey')
+        post = Post.objects.create(url='https://google.com', title='Google', creator=user)
+        client = Client()
+
+        client.login(username='jean', password='hey')
+        uri = reverse('posts:set_upvoted_post', kwargs={'post_id': post.id})
+        response = client.post(uri, json.dumps({'upvoted': True}), content_type='application/json')
+        self.assertEqual(response.status_code, 204)
+
+    def test_set_upvoted_needs_authentication(self):
+        user = User.objects.create_user(username='jean', email='jean@example.com', password='hey')
+        post = Post.objects.create(url='https://google.com', title='Google', creator=user)
+        client = Client()
+
+        uri = reverse('posts:set_upvoted_post', kwargs={'post_id': post.id})
+        response = client.post(uri, json.dumps({'upvoted': True}), content_type='application/json')
+        # It should redirect to the login page
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, f'/accounts/login/?next={uri}')
+
+    def test_set_upvoted_false_removes_post_upvote(self):
+        user = User.objects.create_user(username='jean', email='jean@example.com', password='hey')
+        post = Post.objects.create(url='https://google.com', title='Google', creator=user)
+        client = Client()
+
+        client.login(username='jean', password='hey')
+        uri = reverse('posts:set_upvoted_post', kwargs={'post_id': post.id})
+        client.post(uri, json.dumps({'upvoted': True}), content_type='application/json')
+        client.post(uri, json.dumps({'upvoted': False}), content_type='application/json')
+        self.assertEqual(0, post.upvotes.filter(id=user.id).count())
+
+    def test_set_upvoted_false_returns_204(self):
+        user = User.objects.create_user(username='jean', email='jean@example.com', password='hey')
+        post = Post.objects.create(url='https://google.com', title='Google', creator=user)
+        client = Client()
+
+        client.login(username='jean', password='hey')
+        uri = reverse('posts:set_upvoted_post', kwargs={'post_id': post.id})
+        response = client.post(uri, json.dumps({'upvoted': False}), content_type='application/json')
+        self.assertEqual(response.status_code, 204)
