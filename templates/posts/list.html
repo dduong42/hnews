@@ -1,11 +1,78 @@
 <html>
 <body>
-{% if posts %}
-<ul>
-{% for post in posts %}
-    <li>{{ post.title }} - {{ post.how_long_ago }} - {{ post.get_domain_name }}</li>
-{% endfor %}
-</ul>
+{% if user.is_authenticated %}
+{{ user }} - <a href="{% url 'logout' %}">Log out</a>
+{% else %}
+<a href="{% url 'login' %}">Log in</a>
 {% endif %}
+
+<div id="app">
+    <ul>
+        <li v-for="post in posts">
+            [[ post.title  ]] - [[ post.how_long_ago ]] - [[ post.domain_name ]]
+            {% if user.is_authenticated %}
+            - <span v-if="post.upvoted">Upvoted</span><span v-else>Not Upvoted</span>
+            - <button v-on:click="upvote(post)">Toggle upvoted</button>
+            {% endif %}
+        </li>
+    </ul>
+</div>
+
+<!-- development version, includes helpful console warnings -->
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script>
+function getCookie(name) {
+var cookieValue = null;
+if (document.cookie && document.cookie !== '') {
+    var cookies = document.cookie.split(';');
+    for (var i = 0; i < cookies.length; i++) {
+        var cookie = jQuery.trim(cookies[i]);
+        // Does this cookie string begin with the name we want?
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+        }
+    }
+}
+return cookieValue;
+}
+
+function csrfSafeMethod(method) {
+    // these HTTP methods do not require CSRF protection
+    return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+}
+
+var csrftoken = getCookie('csrftoken');
+
+$.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        }
+    }
+});
+
+var app = new Vue({
+  el: '#app',
+  delimiters: ['[[', ']]'],
+  data: {
+    posts: {{ posts|safe }},
+  },
+  methods: {
+    upvote: function (post) {
+      $.post({
+        url: post.upvote_url,
+        data: JSON.stringify({
+            upvoted: !post.upvoted
+        }),
+        success: function (data, text_status, jq_XHR) {
+          post.upvoted = !post.upvoted
+        },
+      })
+    }
+  }
+})
+</script>
 </body>
 </html>
