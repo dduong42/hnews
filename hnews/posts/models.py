@@ -5,19 +5,10 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.template.defaultfilters import pluralize
 from django.utils import timezone
+from django.urls import reverse
 
 
-class Post(models.Model):
-    creator = models.ForeignKey(
-        User,
-        related_name='posts',
-        on_delete=models.SET_NULL,
-        null=True,
-    )
-    creation_date = models.DateTimeField(auto_now_add=True)
-    url = models.URLField()
-    title = models.CharField(max_length=256)
-
+class HowLongAgoMixin:
     def how_long_ago(self):
         how_long = timezone.now() - self.creation_date
         if how_long < timedelta(minutes=1):
@@ -32,6 +23,18 @@ class Post(models.Model):
         else:
             return f'{how_long.days} day{pluralize(how_long.days)} ago'
 
+
+class Post(models.Model, HowLongAgoMixin):
+    creator = models.ForeignKey(
+        User,
+        related_name='posts',
+        on_delete=models.SET_NULL,
+        null=True,
+    )
+    creation_date = models.DateTimeField(auto_now_add=True)
+    url = models.URLField()
+    title = models.CharField(max_length=256)
+
     def get_domain_name(self):
         name = urlparse(self.url).hostname
         if name.startswith('www.'):
@@ -45,6 +48,15 @@ class Post(models.Model):
         else:
             self.upvotes.filter(user=user).delete()
 
+    def to_dict(self, user):
+        return {
+            'title': self.title,
+            'how_long_ago': self.how_long_ago(),
+            'domain_name': self.get_domain_name(),
+            'upvoted': self.upvotes.filter(user=user).count() > 0,
+            'upvote_url': reverse('posts:set_upvoted_post', kwargs={'post_id': self.id}),
+        }
+
 
 class PostUpvote(models.Model):
     post = models.ForeignKey(Post, related_name='upvotes', on_delete=models.CASCADE)
@@ -54,7 +66,7 @@ class PostUpvote(models.Model):
         unique_together = ('post', 'user')
 
 
-class Comment(models.Model):
+class Comment(models.Model, HowLongAgoMixin):
     creation_date = models.DateTimeField(auto_now_add=True)
     creator = models.ForeignKey(
         User,
