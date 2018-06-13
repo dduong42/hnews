@@ -1,4 +1,5 @@
 import json
+from functools import wraps
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseBadRequest
@@ -7,7 +8,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import ListView, CreateView
 
 from .forms import CommentForm
-from .models import Post
+from .models import Post, Comment
 
 
 class CommentCreateView(CreateView):
@@ -49,14 +50,27 @@ class PostListView(ListView):
         return context
 
 
-@require_POST
-@login_required
+def upvote_view(view):
+    @wraps(view)
+    @require_POST
+    @login_required
+    def new_view(request, *args, **kwargs):
+        obj = view(request, *args, **kwargs)
+        try:
+            upvoted = json.loads(request.body.decode('utf-8'))['upvoted']
+        except (json.JSONDecodeError, KeyError):
+            return HttpResponseBadRequest()
+        obj.set_upvoted(request.user, upvoted=upvoted)
+        # 204: No content
+        return HttpResponse(status=204)
+    return new_view
+
+
+@upvote_view
 def set_upvoted_post(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
-    try:
-        upvoted = json.loads(request.body.decode('utf-8'))['upvoted']
-    except (json.JSONDecodeError, KeyError):
-        return HttpResponseBadRequest()
-    post.set_upvoted(request.user, upvoted=upvoted)
-    # 204: No content
-    return HttpResponse(status=204)
+    return get_object_or_404(Post, id=post_id)
+
+
+@upvote_view
+def set_upvoted_comment(request, comment_id):
+    return get_object_or_404(Comment, id=comment_id)

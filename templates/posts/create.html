@@ -7,28 +7,28 @@
 {% endif %}
 
 <div id="app">
-    [[ post.title  ]] - [[ post.how_long_ago ]] - [[ post.domain_name ]]
+    [[ post.title ]] - [[ post.how_long_ago ]] - [[ post.domain_name ]]
     {% if user.is_authenticated %}
     - <span v-if="post.upvoted">Upvoted</span><span v-else>Not Upvoted</span>
     - <button v-on:click="upvote(post)">Toggle upvoted</button>
     {% endif %}
+
+
+    {% if user.is_authenticated %}
+        <form action="" method="post">
+            {% csrf_token %}
+            {{ form }}
+            <input type="submit" value="Submit" />
+        </form>
+    {% endif %}
+    <ul v-for="comment in post.comments">
+        <li>[[ comment.content ]] - [[ comment.how_long_ago ]]</li>
+        {% if user.is_authenticated %}
+        - <span v-if="comment.upvoted">Upvoted</span><span v-else>Not Upvoted</span>
+        - <button v-on:click="upvote(comment)">Toggle upvoted</button>
+        {% endif %}
+    </ul>
 </div>
-
-{% if user.is_authenticated %}
-<form action="" method="post">
-    {% csrf_token %}
-    {{ form }}
-    <input type="submit" value="Submit" />
-</form>
-{% endif %}
-
-
-<ul>
-{% for comment in post.comments.all %}
-    <li>{{ comment.content }} - {{ comment.how_long_ago }}</li>
-{% endfor %}
-</ul>
-
 
 <!-- development version, includes helpful console warnings -->
 <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
@@ -72,14 +72,14 @@ var app = new Vue({
     post: {{ post_json|safe }},
   },
   methods: {
-    upvote: function (post) {
+    upvote: function (obj) {
       $.post({
-        url: post.upvote_url,
+        url: obj.upvote_url,
         data: JSON.stringify({
-            upvoted: !post.upvoted
+            upvoted: !obj.upvoted
         }),
         success: function (data, text_status, jq_XHR) {
-          post.upvoted = !post.upvoted
+          obj.upvoted = !obj.upvoted
         },
       })
     }
