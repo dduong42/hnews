@@ -8,25 +8,21 @@
 
 <div id="app">
     [[ post.title ]] - [[ post.how_long_ago ]] - [[ post.domain_name ]]
-    {% if user.is_authenticated %}
+    <template v-if="is_authenticated">
     - <span v-if="post.upvoted">Upvoted</span><span v-else>Not Upvoted</span>
     - <button v-on:click="upvote(post)">Toggle upvoted</button>
-    {% endif %}
+    </template>
 
 
-    {% if user.is_authenticated %}
+    <template v-if="is_authenticated">
         <form action="" method="post">
             {% csrf_token %}
             {{ form }}
             <input type="submit" value="Submit" />
         </form>
-    {% endif %}
+    </template>
     <ul v-for="comment in post.comments">
-        <li>[[ comment.content ]] - [[ comment.how_long_ago ]]</li>
-        {% if user.is_authenticated %}
-        - <span v-if="comment.upvoted">Upvoted</span><span v-else>Not Upvoted</span>
-        - <button v-on:click="upvote(comment)">Toggle upvoted</button>
-        {% endif %}
+        <comment-comp v-bind:comment="comment" v-on:send_upvote="upvote($event)" v-bind:is_authenticated="is_authenticated"></comment-comp>
     </ul>
 </div>
 
@@ -65,11 +61,68 @@ $.ajaxSetup({
     }
 });
 
+function upvote(obj) {
+  $.post({
+    url: obj.upvote_url,
+    data: JSON.stringify({
+        upvoted: !obj.upvoted
+    }),
+    success: function (data, text_status, jq_XHR) {
+      obj.upvoted = !obj.upvoted
+    },
+  })
+}
+
+Vue.component('comment-comp', {
+  data: function () {
+    return {
+      show_reply: false,
+      content: '',
+    }
+  },
+  delimiters: ['[[', ']]'],
+  props: ['comment', 'is_authenticated'],
+  template: `<li>[[ comment.content ]] - [[ comment.how_long_ago ]]
+        <template v-if="is_authenticated">
+        - <span v-if="comment.upvoted">Upvoted</span><span v-else>Not Upvoted</span>
+        - <button v-on:click="send_upvote(comment)">Toggle upvoted</button>
+        </template>
+        <button v-on:click="show_textarea">Reply</button>
+        <template v-if="show_reply">
+        <textarea v-model='content'></textarea>
+        <button v-on:click="send_comment">Submit</button>
+        </template>
+        <ul v-for="reply in comment.replies">
+          <comment-comp v-bind:comment="reply" v-on:send_upvote="send_upvote(reply)" v-bind:is_authenticated="is_authenticated"></comment-comp>
+        </ul>
+        </li>`,
+  methods: {
+    send_upvote: function (comment) {
+      this.$emit('send_upvote', comment)
+    },
+    show_textarea: function() {
+      this.show_reply = true
+    },
+    send_comment: function() {
+      $.post({
+        url: this.comment.comment_url,
+        data: JSON.stringify({
+          content: this.content
+        }),
+        success: function (data, text_status, jq_XHR) {
+          location.reload(true);
+        },
+      })
+    }
+  }
+});
+
 var app = new Vue({
   el: '#app',
   delimiters: ['[[', ']]'],
   data: {
     post: {{ post_json|safe }},
+    is_authenticated: {% if user.is_authenticated %}true{% else %}false{% endif %},
   },
   methods: {
     upvote: function (obj) {

@@ -74,3 +74,16 @@ def set_upvoted_post(request, post_id):
 @upvote_view
 def set_upvoted_comment(request, comment_id):
     return get_object_or_404(Comment, id=comment_id)
+
+
+@require_POST
+@login_required
+def add_reply(request, comment_id):
+    comment = get_object_or_404(Comment, id=comment_id)
+    try:
+        content = json.loads(request.body.decode('utf-8'))['content']
+    except (json.JSONDecodeError, KeyError):
+        return HttpResponseBadRequest()
+    Comment.objects.create(content=content, creator=request.user,
+                           post=comment.post, parent=comment)
+    return HttpResponse(status=204)

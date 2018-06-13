@@ -9,7 +9,7 @@
 <div id="app">
     <ul>
         <li v-for="post in posts">
-            [[ post.title  ]] - [[ post.how_long_ago ]] - [[ post.domain_name ]]
+            <a v-bind:href="post.comments_url">[[ post.title ]]</a> - [[ post.how_long_ago ]] - [[ post.domain_name ]]
             {% if user.is_authenticated %}
             - <span v-if="post.upvoted">Upvoted</span><span v-else>Not Upvoted</span>
             - <button v-on:click="upvote(post)">Toggle upvoted</button>

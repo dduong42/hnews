@@ -55,8 +55,9 @@ class Post(models.Model, HowLongAgoMixin):
             'domain_name': self.get_domain_name(),
             'creator': self.creator.username,
             'upvoted': self.upvotes.filter(user=user).count() > 0,
+            'comments_url': reverse('posts:comments', kwargs={'post_id': self.id}),
             'upvote_url': reverse('posts:set_upvoted_post', kwargs={'post_id': self.id}),
-            'comments': [comment.to_dict(user) for comment in self.comments.all()]
+            'comments': [comment.to_dict(user) for comment in self.comments.filter(parent=None)]
         }
 
 
@@ -92,7 +93,12 @@ class Comment(models.Model, HowLongAgoMixin):
             'how_long_ago': self.how_long_ago(),
             'creator': self.creator.username,
             'upvoted': self.upvotes.filter(user=user).count() > 0,
+            'comment_url': reverse('add_reply', kwargs={'comment_id': self.id}),
             'upvote_url': reverse('set_upvoted_comment', kwargs={'comment_id': self.id}),
+            'replies': [
+                reply.to_dict(user)
+                for reply in self.replies.all()
+            ],
         }
 
 
